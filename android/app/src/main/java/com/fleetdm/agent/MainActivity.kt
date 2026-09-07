@@ -2,6 +2,7 @@
 
 package com.fleetdm.agent
 
+import android.Manifest
 import android.app.admin.DevicePolicyManager
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -55,6 +56,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
@@ -78,6 +81,16 @@ object LogsDestination
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (
+            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                NOTIFICATION_PERMISSION_REQUEST,
+            )
+        }
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(
                 scrim = Color.TRANSPARENT,
@@ -90,6 +103,10 @@ class MainActivity : ComponentActivity() {
                 AppNavigation()
             }
         }
+    }
+
+    companion object {
+        private const val NOTIFICATION_PERMISSION_REQUEST = 1001
     }
 }
 
@@ -124,6 +141,12 @@ fun AppNavigation() {
 fun MainScreen(onNavigateToDebug: () -> Unit) {
     val context = LocalContext.current
     val orchestrator = remember { AgentApplication.getCertificateOrchestrator(context) }
+    val isEnrolled by ApiClient.isEnrolledFlow.collectAsStateWithLifecycle(initialValue = false)
+
+    if (!isEnrolled) {
+        EnrollmentScreen(modifier = Modifier.fillMaxSize())
+        return
+    }
 
     var versionClicks by remember { mutableStateOf(0) }
     val installedCerts by orchestrator.installedCertsFlow(context).collectAsStateWithLifecycle(initialValue = emptyMap())

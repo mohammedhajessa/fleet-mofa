@@ -273,6 +273,9 @@ export default {
   EDIT_SOFTWARE_PACKAGE: (id: number) =>
     `/${API_VERSION}/fleet/software/titles/${id}/package`,
   SOFTWARE_APP_STORE_APPS: `/${API_VERSION}/fleet/software/app_store_apps`, // VPP apps and Google Play apps
+  MOFA_ANDROID_APPS: `/${API_VERSION}/fleet/mofa/android/apps`,
+  MOFA_ANDROID_APP_INSTALL: (id: number) =>
+    `/${API_VERSION}/fleet/mofa/android/apps/${id}/install`,
   EDIT_SOFTWARE_APP_STORE_APP: (id: number) =>
     `/${API_VERSION}/fleet/software/titles/${id}/app_store_app`, // VPP apps and Google Play apps
   SOFTWARE_ICON: (id: number) =>

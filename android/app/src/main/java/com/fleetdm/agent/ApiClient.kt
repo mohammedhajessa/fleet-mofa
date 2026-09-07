@@ -8,10 +8,13 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import java.io.File
+import java.io.FileOutputStream
 import java.math.BigInteger
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.UnknownHostException
+import java.security.MessageDigest
 import java.util.Date
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -108,6 +111,11 @@ object ApiClient : CertificateApiClient {
     val baseUrlFlow: Flow<String?>
         get() = dataStore.data.map { preferences ->
             preferences[SERVER_URL_KEY]
+        }
+
+    val isEnrolledFlow: Flow<Boolean>
+        get() = dataStore.data.map { preferences ->
+            preferences[API_KEY] != null
         }
 
     suspend fun getApiKey(): String? {
@@ -435,6 +443,91 @@ object ApiClient : CertificateApiClient {
         }
     }
 
+    suspend fun getPendingApkCommands(): Result<PendingApkCommandsResponse> = withReenrollOnUnauthorized {
+        makeRequest<Unit, PendingApkCommandsResponse>(
+            endpoint = "/api/fleet/orbit/mofa/android/apps/pending",
+            responseSerializer = PendingApkCommandsResponse.serializer(),
+        )
+    }
+
+    suspend fun updateApkCommandStatus(
+        commandId: String,
+        status: ApkCommandStatus,
+        detail: String? = null,
+    ): Result<Unit> = withReenrollOnUnauthorized {
+        makeRequest(
+            endpoint = "/api/fleet/orbit/mofa/android/apps/$commandId/status",
+            method = "POST",
+            body = UpdateApkCommandStatusRequest(status = status, detail = detail),
+            bodySerializer = UpdateApkCommandStatusRequest.serializer(),
+            responseSerializer = EmptyApkResponse.serializer(),
+        ).map { Unit }
+    }
+
+    suspend fun downloadApk(commandId: String, expectedSha256: String, destination: File): Result<File> =
+        withContext(Dispatchers.IO) {
+            val baseUrl = getBaseUrl()
+                ?: return@withContext Result.failure(Exception("Base URL not configured"))
+            val nodeKey = getNodeKeyOrEnroll().getOrElse {
+                return@withContext Result.failure(it)
+            }
+            val url = URL("$baseUrl/api/fleet/orbit/mofa/android/apps/$commandId/download")
+            val temporary = File(destination.parentFile, "${destination.name}.part")
+            var connection: HttpURLConnection? = null
+
+            try {
+                destination.parentFile?.mkdirs()
+                temporary.delete()
+                connection = openConnectionOnActiveNetwork(url).apply {
+                    requestMethod = "GET"
+                    useCaches = false
+                    connectTimeout = 15_000
+                    readTimeout = 120_000
+                    setRequestProperty("Authorization", "Node key $nodeKey")
+                }
+                if (connection.responseCode !in 200..299) {
+                    val error = connection.errorStream?.bufferedReader()?.use { it.readText() }
+                        ?: "HTTP ${connection.responseCode}"
+                    return@withContext Result.failure(Exception(error))
+                }
+
+                val digest = MessageDigest.getInstance("SHA-256")
+                connection.inputStream.use { input ->
+                    FileOutputStream(temporary).use { output ->
+                        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                        while (true) {
+                            val count = input.read(buffer)
+                            if (count < 0) break
+                            output.write(buffer, 0, count)
+                            digest.update(buffer, 0, count)
+                        }
+                    }
+                }
+                val actualSha256 = digest.digest().joinToString("") { "%02x".format(it) }
+                if (!actualSha256.equals(expectedSha256, ignoreCase = true)) {
+                    temporary.delete()
+                    return@withContext Result.failure(SecurityException("APK SHA-256 mismatch"))
+                }
+                if (destination.exists() && !destination.delete()) {
+                    temporary.delete()
+                    return@withContext Result.failure(Exception("Unable to replace cached APK"))
+                }
+                if (!temporary.renameTo(destination)) {
+                    temporary.delete()
+                    return@withContext Result.failure(Exception("Unable to finalize APK download"))
+                }
+                Result.success(destination)
+            } catch (e: CancellationException) {
+                temporary.delete()
+                throw e
+            } catch (e: Exception) {
+                temporary.delete()
+                Result.failure(e)
+            } finally {
+                connection?.disconnect()
+            }
+        }
+
     private data class EnrollmentCredentials(
         val baseUrl: String,
         val enrollSecret: String,
@@ -466,6 +559,55 @@ data class EnrollResponse(
     @SerialName("orbit_node_key")
     val orbitNodeKey: String,
 )
+
+@Serializable
+data class PendingApkCommandsResponse(
+    val commands: List<PendingApkCommand> = emptyList(),
+)
+
+@Serializable
+data class PendingApkCommand(
+    @SerialName("command_id")
+    val commandId: String,
+    @SerialName("app_id")
+    val appId: Long,
+    @SerialName("package_name")
+    val packageName: String,
+    val name: String,
+    @SerialName("version_name")
+    val versionName: String,
+    @SerialName("version_code")
+    val versionCode: Long,
+    val sha256: String,
+    val status: ApkCommandStatus,
+)
+
+@Serializable
+enum class ApkCommandStatus {
+    @SerialName("pending")
+    PENDING,
+
+    @SerialName("downloaded")
+    DOWNLOADED,
+
+    @SerialName("awaiting_user")
+    AWAITING_USER,
+
+    @SerialName("installed")
+    INSTALLED,
+
+    @SerialName("failed")
+    FAILED,
+}
+
+@Serializable
+private data class UpdateApkCommandStatusRequest(
+    val status: ApkCommandStatus,
+    val detail: String? = null,
+)
+
+@Serializable
+private class EmptyApkResponse
 
 @Serializable
 private data class GetConfigRequest(

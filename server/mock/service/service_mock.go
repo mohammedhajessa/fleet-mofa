@@ -21,6 +21,18 @@ import (
 
 var _ fleet.Service = (*Service)(nil)
 
+type UploadMofaAndroidAppFunc func(ctx context.Context, upload *fleet.MofaAndroidAppUpload) (*fleet.MofaAndroidApp, error)
+
+type ListMofaAndroidAppsFunc func(ctx context.Context, teamID uint) ([]*fleet.MofaAndroidApp, error)
+
+type QueueMofaAndroidAppInstallFunc func(ctx context.Context, appID uint, hostIDs []uint) ([]string, error)
+
+type ListPendingMofaAndroidAppCommandsFunc func(ctx context.Context) ([]*fleet.MofaAndroidAppCommand, error)
+
+type DownloadMofaAndroidAppFunc func(ctx context.Context, commandID string) (*fleet.MofaAndroidAppDownload, error)
+
+type UpdateMofaAndroidAppCommandStatusFunc func(ctx context.Context, commandID string, status fleet.MofaAndroidAppCommandStatus, detail string) error
+
 type EnrollOsqueryFunc func(ctx context.Context, enrollSecret string, hostIdentifier string, hostDetails map[string](map[string]string)) (nodeKey string, err error)
 
 type AuthenticateHostFunc func(ctx context.Context, nodeKey string) (host *fleet.Host, debug bool, err error)
@@ -1018,6 +1030,24 @@ type SendAPNSPingFunc func(ctx context.Context, hostID uint) error
 type DeviceSendAPNSPingFunc func(ctx context.Context, host *fleet.Host) error
 
 type Service struct {
+	UploadMofaAndroidAppFunc        UploadMofaAndroidAppFunc
+	UploadMofaAndroidAppFuncInvoked bool
+
+	ListMofaAndroidAppsFunc        ListMofaAndroidAppsFunc
+	ListMofaAndroidAppsFuncInvoked bool
+
+	QueueMofaAndroidAppInstallFunc        QueueMofaAndroidAppInstallFunc
+	QueueMofaAndroidAppInstallFuncInvoked bool
+
+	ListPendingMofaAndroidAppCommandsFunc        ListPendingMofaAndroidAppCommandsFunc
+	ListPendingMofaAndroidAppCommandsFuncInvoked bool
+
+	DownloadMofaAndroidAppFunc        DownloadMofaAndroidAppFunc
+	DownloadMofaAndroidAppFuncInvoked bool
+
+	UpdateMofaAndroidAppCommandStatusFunc        UpdateMofaAndroidAppCommandStatusFunc
+	UpdateMofaAndroidAppCommandStatusFuncInvoked bool
+
 	EnrollOsqueryFunc        EnrollOsqueryFunc
 	EnrollOsqueryFuncInvoked bool
 
@@ -2513,6 +2543,48 @@ type Service struct {
 	DeviceSendAPNSPingFuncInvoked bool
 
 	mu sync.Mutex
+}
+
+func (s *Service) UploadMofaAndroidApp(ctx context.Context, upload *fleet.MofaAndroidAppUpload) (*fleet.MofaAndroidApp, error) {
+	s.mu.Lock()
+	s.UploadMofaAndroidAppFuncInvoked = true
+	s.mu.Unlock()
+	return s.UploadMofaAndroidAppFunc(ctx, upload)
+}
+
+func (s *Service) ListMofaAndroidApps(ctx context.Context, teamID uint) ([]*fleet.MofaAndroidApp, error) {
+	s.mu.Lock()
+	s.ListMofaAndroidAppsFuncInvoked = true
+	s.mu.Unlock()
+	return s.ListMofaAndroidAppsFunc(ctx, teamID)
+}
+
+func (s *Service) QueueMofaAndroidAppInstall(ctx context.Context, appID uint, hostIDs []uint) ([]string, error) {
+	s.mu.Lock()
+	s.QueueMofaAndroidAppInstallFuncInvoked = true
+	s.mu.Unlock()
+	return s.QueueMofaAndroidAppInstallFunc(ctx, appID, hostIDs)
+}
+
+func (s *Service) ListPendingMofaAndroidAppCommands(ctx context.Context) ([]*fleet.MofaAndroidAppCommand, error) {
+	s.mu.Lock()
+	s.ListPendingMofaAndroidAppCommandsFuncInvoked = true
+	s.mu.Unlock()
+	return s.ListPendingMofaAndroidAppCommandsFunc(ctx)
+}
+
+func (s *Service) DownloadMofaAndroidApp(ctx context.Context, commandID string) (*fleet.MofaAndroidAppDownload, error) {
+	s.mu.Lock()
+	s.DownloadMofaAndroidAppFuncInvoked = true
+	s.mu.Unlock()
+	return s.DownloadMofaAndroidAppFunc(ctx, commandID)
+}
+
+func (s *Service) UpdateMofaAndroidAppCommandStatus(ctx context.Context, commandID string, status fleet.MofaAndroidAppCommandStatus, detail string) error {
+	s.mu.Lock()
+	s.UpdateMofaAndroidAppCommandStatusFuncInvoked = true
+	s.mu.Unlock()
+	return s.UpdateMofaAndroidAppCommandStatusFunc(ctx, commandID, status, detail)
 }
 
 func (s *Service) EnrollOsquery(ctx context.Context, enrollSecret string, hostIdentifier string, hostDetails map[string](map[string]string)) (nodeKey string, err error) {

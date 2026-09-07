@@ -2,6 +2,7 @@
 
 - [Requirements](#requirements)
 - [Building the project](#building-the-project)
+- [Manual Community enrollment](#manual-community-enrollment)
 - [Deploying via Android MDM](#deploying-via-android-mdm-development)
 - [How the app starts](#how-the-app-starts)
 - [Running tests](#running-tests)
@@ -106,6 +107,17 @@ echo <SHA256> | tr -d ':' | xxd -r -p | base64
 ```
 
 Copy the fingerprint for use in the `mdm.android_agent.signing_sha256` config option.
+
+## Manual Community enrollment
+
+The MOFA Community build can enroll a device without Android Enterprise:
+
+1. In Fleet, copy an enrollment secret from **Settings > Organization settings > Fleet details**.
+2. Install the signed Fleet Android agent APK on the phone.
+3. Open the app and enter the Fleet server URL and enrollment secret.
+4. Allow notifications. When an administrator queues a company APK, tap the notification and approve the Android package installer prompt.
+
+Android intentionally requires a person to approve APK installation unless the app is a device owner or is installed through a privileged MDM. The Community workflow does not bypass that operating-system protection.
 
 ## Deploying via Android MDM (development)
 

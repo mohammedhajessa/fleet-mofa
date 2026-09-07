@@ -797,6 +797,17 @@ type Datastore interface {
 	///////////////////////////////////////////////////////////////////////////////
 	// SoftwareStore
 
+	// MOFA Android APK datastore
+	UpsertMofaAndroidApp(ctx context.Context, app *MofaAndroidApp, contents []byte) (*MofaAndroidApp, error)
+	ListMofaAndroidApps(ctx context.Context, teamID uint) ([]*MofaAndroidApp, error)
+	MofaAndroidAppByID(ctx context.Context, appID uint, includeContents bool) (*MofaAndroidApp, error)
+	MofaAndroidHostIDsForTeam(ctx context.Context, teamID uint) ([]uint, error)
+	QueueMofaAndroidAppCommands(ctx context.Context, appID uint, hostIDs []uint) ([]string, error)
+	ListPendingMofaAndroidAppCommands(ctx context.Context, hostID uint) ([]*MofaAndroidAppCommand, error)
+	DownloadMofaAndroidAppForHost(ctx context.Context, hostID uint, commandID string) (*MofaAndroidAppDownload, error)
+	MofaAndroidAppCommandStatus(ctx context.Context, hostID uint, commandID string) (MofaAndroidAppCommandStatus, error)
+	UpdateMofaAndroidAppCommandStatus(ctx context.Context, hostID uint, commandID string, status MofaAndroidAppCommandStatus, detail string) error
+
 	// ListSoftwareForVulnDetection returns all software for the given hostID with only the fields
 	// used for vulnerability detection populated (id, name, version, cpe_id, cpe)
 	ListSoftwareForVulnDetection(ctx context.Context, filter VulnSoftwareFilter) ([]Software, error)

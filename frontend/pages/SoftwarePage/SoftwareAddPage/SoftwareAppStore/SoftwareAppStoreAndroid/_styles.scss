@@ -32,3 +32,26 @@
     text-align: center;
   }
 }
+
+.mofa-android-apk-form {
+  display: flex;
+  flex-direction: column;
+  gap: $pad-large;
+  max-width: 640px;
+
+  h2,
+  p {
+    margin: 0;
+  }
+
+  &__fields {
+    display: flex;
+    flex-direction: column;
+    gap: $pad-large;
+  }
+
+  &__actions {
+    display: flex;
+    gap: $pad-small;
+  }
+}

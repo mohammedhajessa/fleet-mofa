@@ -554,6 +554,24 @@ type InsertSoftwareUninstallRequestFunc func(ctx context.Context, executionID st
 
 type GetDetailsForUninstallFromExecutionIDFunc func(ctx context.Context, executionID string) (string, bool, error)
 
+type UpsertMofaAndroidAppFunc func(ctx context.Context, app *fleet.MofaAndroidApp, contents []byte) (*fleet.MofaAndroidApp, error)
+
+type ListMofaAndroidAppsFunc func(ctx context.Context, teamID uint) ([]*fleet.MofaAndroidApp, error)
+
+type MofaAndroidAppByIDFunc func(ctx context.Context, appID uint, includeContents bool) (*fleet.MofaAndroidApp, error)
+
+type MofaAndroidHostIDsForTeamFunc func(ctx context.Context, teamID uint) ([]uint, error)
+
+type QueueMofaAndroidAppCommandsFunc func(ctx context.Context, appID uint, hostIDs []uint) ([]string, error)
+
+type ListPendingMofaAndroidAppCommandsFunc func(ctx context.Context, hostID uint) ([]*fleet.MofaAndroidAppCommand, error)
+
+type DownloadMofaAndroidAppForHostFunc func(ctx context.Context, hostID uint, commandID string) (*fleet.MofaAndroidAppDownload, error)
+
+type MofaAndroidAppCommandStatusFunc func(ctx context.Context, hostID uint, commandID string) (fleet.MofaAndroidAppCommandStatus, error)
+
+type UpdateMofaAndroidAppCommandStatusFunc func(ctx context.Context, hostID uint, commandID string, status fleet.MofaAndroidAppCommandStatus, detail string) error
+
 type ListSoftwareForVulnDetectionFunc func(ctx context.Context, filter fleet.VulnSoftwareFilter) ([]fleet.Software, error)
 
 type ListSoftwareForVulnDetectionByOSVersionFunc func(ctx context.Context, osVer fleet.OSVersion) ([]fleet.Software, error)
@@ -3191,6 +3209,33 @@ type DataStore struct {
 
 	GetDetailsForUninstallFromExecutionIDFunc        GetDetailsForUninstallFromExecutionIDFunc
 	GetDetailsForUninstallFromExecutionIDFuncInvoked bool
+
+	UpsertMofaAndroidAppFunc        UpsertMofaAndroidAppFunc
+	UpsertMofaAndroidAppFuncInvoked bool
+
+	ListMofaAndroidAppsFunc        ListMofaAndroidAppsFunc
+	ListMofaAndroidAppsFuncInvoked bool
+
+	MofaAndroidAppByIDFunc        MofaAndroidAppByIDFunc
+	MofaAndroidAppByIDFuncInvoked bool
+
+	MofaAndroidHostIDsForTeamFunc        MofaAndroidHostIDsForTeamFunc
+	MofaAndroidHostIDsForTeamFuncInvoked bool
+
+	QueueMofaAndroidAppCommandsFunc        QueueMofaAndroidAppCommandsFunc
+	QueueMofaAndroidAppCommandsFuncInvoked bool
+
+	ListPendingMofaAndroidAppCommandsFunc        ListPendingMofaAndroidAppCommandsFunc
+	ListPendingMofaAndroidAppCommandsFuncInvoked bool
+
+	DownloadMofaAndroidAppForHostFunc        DownloadMofaAndroidAppForHostFunc
+	DownloadMofaAndroidAppForHostFuncInvoked bool
+
+	MofaAndroidAppCommandStatusFunc        MofaAndroidAppCommandStatusFunc
+	MofaAndroidAppCommandStatusFuncInvoked bool
+
+	UpdateMofaAndroidAppCommandStatusFunc        UpdateMofaAndroidAppCommandStatusFunc
+	UpdateMofaAndroidAppCommandStatusFuncInvoked bool
 
 	ListSoftwareForVulnDetectionFunc        ListSoftwareForVulnDetectionFunc
 	ListSoftwareForVulnDetectionFuncInvoked bool
@@ -7811,6 +7856,69 @@ func (s *DataStore) GetDetailsForUninstallFromExecutionID(ctx context.Context, e
 	s.GetDetailsForUninstallFromExecutionIDFuncInvoked = true
 	s.mu.Unlock()
 	return s.GetDetailsForUninstallFromExecutionIDFunc(ctx, executionID)
+}
+
+func (s *DataStore) UpsertMofaAndroidApp(ctx context.Context, app *fleet.MofaAndroidApp, contents []byte) (*fleet.MofaAndroidApp, error) {
+	s.mu.Lock()
+	s.UpsertMofaAndroidAppFuncInvoked = true
+	s.mu.Unlock()
+	return s.UpsertMofaAndroidAppFunc(ctx, app, contents)
+}
+
+func (s *DataStore) ListMofaAndroidApps(ctx context.Context, teamID uint) ([]*fleet.MofaAndroidApp, error) {
+	s.mu.Lock()
+	s.ListMofaAndroidAppsFuncInvoked = true
+	s.mu.Unlock()
+	return s.ListMofaAndroidAppsFunc(ctx, teamID)
+}
+
+func (s *DataStore) MofaAndroidAppByID(ctx context.Context, appID uint, includeContents bool) (*fleet.MofaAndroidApp, error) {
+	s.mu.Lock()
+	s.MofaAndroidAppByIDFuncInvoked = true
+	s.mu.Unlock()
+	return s.MofaAndroidAppByIDFunc(ctx, appID, includeContents)
+}
+
+func (s *DataStore) MofaAndroidHostIDsForTeam(ctx context.Context, teamID uint) ([]uint, error) {
+	s.mu.Lock()
+	s.MofaAndroidHostIDsForTeamFuncInvoked = true
+	s.mu.Unlock()
+	return s.MofaAndroidHostIDsForTeamFunc(ctx, teamID)
+}
+
+func (s *DataStore) QueueMofaAndroidAppCommands(ctx context.Context, appID uint, hostIDs []uint) ([]string, error) {
+	s.mu.Lock()
+	s.QueueMofaAndroidAppCommandsFuncInvoked = true
+	s.mu.Unlock()
+	return s.QueueMofaAndroidAppCommandsFunc(ctx, appID, hostIDs)
+}
+
+func (s *DataStore) ListPendingMofaAndroidAppCommands(ctx context.Context, hostID uint) ([]*fleet.MofaAndroidAppCommand, error) {
+	s.mu.Lock()
+	s.ListPendingMofaAndroidAppCommandsFuncInvoked = true
+	s.mu.Unlock()
+	return s.ListPendingMofaAndroidAppCommandsFunc(ctx, hostID)
+}
+
+func (s *DataStore) DownloadMofaAndroidAppForHost(ctx context.Context, hostID uint, commandID string) (*fleet.MofaAndroidAppDownload, error) {
+	s.mu.Lock()
+	s.DownloadMofaAndroidAppForHostFuncInvoked = true
+	s.mu.Unlock()
+	return s.DownloadMofaAndroidAppForHostFunc(ctx, hostID, commandID)
+}
+
+func (s *DataStore) MofaAndroidAppCommandStatus(ctx context.Context, hostID uint, commandID string) (fleet.MofaAndroidAppCommandStatus, error) {
+	s.mu.Lock()
+	s.MofaAndroidAppCommandStatusFuncInvoked = true
+	s.mu.Unlock()
+	return s.MofaAndroidAppCommandStatusFunc(ctx, hostID, commandID)
+}
+
+func (s *DataStore) UpdateMofaAndroidAppCommandStatus(ctx context.Context, hostID uint, commandID string, status fleet.MofaAndroidAppCommandStatus, detail string) error {
+	s.mu.Lock()
+	s.UpdateMofaAndroidAppCommandStatusFuncInvoked = true
+	s.mu.Unlock()
+	return s.UpdateMofaAndroidAppCommandStatusFunc(ctx, hostID, commandID, status, detail)
 }
 
 func (s *DataStore) ListSoftwareForVulnDetection(ctx context.Context, filter fleet.VulnSoftwareFilter) ([]fleet.Software, error) {

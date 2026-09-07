@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Fleet</string>
 
-    <string name="app_description">This app is installed by your IT admin to install the certificates needed to connect to corporate networks.</string>
+    <string name="app_description">This app connects your device to Fleet, installs company certificates, and delivers approved company apps.</string>
     <string name="learn_about_fleet">About Fleet</string>
     <string name="fleet_logo">Fleet logo</string>
     <string name="certificate_list_title">Certificates</string>

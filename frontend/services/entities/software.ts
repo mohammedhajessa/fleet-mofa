@@ -183,6 +183,27 @@ export interface IAddAppStoreAppFormData {
   categories?: SoftwareCategory[];
 }
 
+export interface IMofaAndroidApp {
+  id: number;
+  team_id: number;
+  name: string;
+  package_name: string;
+  version_name: string;
+  version_code: number;
+  filename: string;
+  sha256: string;
+  size: number;
+}
+
+export interface IMofaAndroidApkFormData {
+  software: File;
+  name: string;
+  packageName: string;
+  versionName: string;
+  versionCode: number;
+  hostIds: number[];
+}
+
 // 4.77 Edit for Android app is not yet available
 export interface IEditAppStoreAppFormData {
   fleet_id: number;
@@ -404,6 +425,25 @@ const handleEditAppStoreAppForm = (
 };
 
 export default {
+  uploadMofaAndroidApp: (
+    teamId: number,
+    data: IMofaAndroidApkFormData
+  ): Promise<{ app: IMofaAndroidApp }> => {
+    const formData = new FormData();
+    formData.append("software", data.software);
+    formData.append("fleet_id", teamId.toString());
+    formData.append("name", data.name);
+    formData.append("package_name", data.packageName);
+    formData.append("version_name", data.versionName);
+    formData.append("version_code", data.versionCode.toString());
+    return sendRequest("POST", endpoints.MOFA_ANDROID_APPS, formData);
+  },
+
+  queueMofaAndroidAppInstall: (appId: number, hostIds: number[]) =>
+    sendRequest("POST", endpoints.MOFA_ANDROID_APP_INSTALL(appId), {
+      host_ids: hostIds,
+    }),
+
   load: async ({
     page,
     perPage,

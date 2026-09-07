@@ -427,6 +427,13 @@ func attachFleetAPIRoutes(r *mux.Router, svc fleet.Service, config config.FleetC
 
 	ue.GET("/api/_version_/fleet/software/titles", listSoftwareTitlesEndpoint, listSoftwareTitlesRequest{})
 	ue.GET("/api/_version_/fleet/software/titles/{id:[0-9]+}", getSoftwareTitleEndpoint, getSoftwareTitleRequest{})
+
+	// MOFA Community APK management. This path is independent from Managed
+	// Google Play and Fleet Premium software packages.
+	ue.SkipRequestBodySizeLimit().POST("/api/_version_/fleet/mofa/android/apps", uploadMofaAndroidAppEndpoint, uploadMofaAndroidAppRequest{})
+	ue.GET("/api/_version_/fleet/mofa/android/apps", listMofaAndroidAppsEndpoint, listMofaAndroidAppsRequest{})
+	ue.POST("/api/_version_/fleet/mofa/android/apps/{app_id:[0-9]+}/install", queueMofaAndroidAppEndpoint, queueMofaAndroidAppRequest{})
+
 	ue.POST("/api/_version_/fleet/hosts/{host_id:[0-9]+}/software/{software_title_id:[0-9]+}/install", installSoftwareTitleEndpoint,
 		installSoftwareRequest{})
 	ue.POST("/api/_version_/fleet/hosts/{host_id:[0-9]+}/software/{software_title_id:[0-9]+}/uninstall", uninstallSoftwareTitleEndpoint,
@@ -1105,6 +1112,9 @@ func attachFleetAPIRoutes(r *mux.Router, svc fleet.Service, config config.FleetC
 	androidEndpoints := androidAuthenticatedEndpointer(svc, logger, opts, r, apiVersions...)
 	androidEndpoints.GET("/api/fleetd/certificates/{id:[0-9]+}", getDeviceCertificateTemplateEndpoint, getDeviceCertificateTemplateRequest{})
 	androidEndpoints.PUT("/api/fleetd/certificates/{id:[0-9]+}/status", updateCertificateStatusEndpoint, updateCertificateStatusRequest{})
+	androidEndpoints.GET("/api/fleet/orbit/mofa/android/apps/pending", pendingMofaAndroidAppsEndpoint, pendingMofaAndroidAppsRequest{})
+	androidEndpoints.GET("/api/fleet/orbit/mofa/android/apps/{command_id}/download", downloadMofaAndroidAppEndpoint, downloadMofaAndroidAppRequest{})
+	androidEndpoints.POST("/api/fleet/orbit/mofa/android/apps/{command_id}/status", updateMofaAndroidAppStatusEndpoint, updateMofaAndroidAppStatusRequest{})
 
 	// orbit authenticated endpoints
 	oe := newOrbitAuthenticatedEndpointer(svc, logger, opts, r, apiVersions...)

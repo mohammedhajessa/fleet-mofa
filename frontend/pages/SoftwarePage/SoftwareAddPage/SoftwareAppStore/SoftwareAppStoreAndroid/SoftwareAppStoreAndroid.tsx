@@ -3,7 +3,9 @@ import { InjectedRouter } from "react-router";
 import PATHS from "router/paths";
 
 import { AppContext } from "context/app";
-import softwareAPI from "services/entities/software";
+import softwareAPI, {
+  IMofaAndroidApkFormData,
+} from "services/entities/software";
 
 import { notify } from "components/ToastNotification";
 import PremiumFeatureMessage from "components/PremiumFeatureMessage";
@@ -14,6 +16,7 @@ import { ISoftwareAndroidFormData } from "pages/SoftwarePage/components/forms/So
 import { getPathWithQueryParams } from "utilities/url";
 import SoftwareAndroidForm from "pages/SoftwarePage/components/forms/SoftwareAndroidForm";
 import { getErrorMessage } from "./helpers";
+import MofaAndroidApkForm from "./MofaAndroidApkForm";
 
 const baseClass = "software-app-store-android";
 
@@ -104,8 +107,42 @@ const SoftwareAppStoreAndroid = ({
     setIsLoading(false);
   };
 
+  const onUploadCommunityApk = async (formData: IMofaAndroidApkFormData) => {
+    setIsLoading(true);
+    try {
+      const { app } = await softwareAPI.uploadMofaAndroidApp(
+        currentTeamId,
+        formData
+      );
+      const response = await softwareAPI.queueMofaAndroidAppInstall(
+        app.id,
+        formData.hostIds
+      );
+      const count = response.command_ids?.length || 0;
+      notify.success(
+        <>
+          <strong>{app.name}</strong> uploaded and queued for {count} Android
+          device{count === 1 ? "" : "s"}.
+        </>
+      );
+      goBackToSoftwareLibrary();
+    } catch (e) {
+      notify.error(getErrorMessage(e), { response: e });
+    }
+    setIsLoading(false);
+  };
+
   const renderContent = () => {
     if (!isPremiumTier) {
+      if (isGlobalAdmin) {
+        return (
+          <MofaAndroidApkForm
+            isLoading={isLoading}
+            onSubmit={onUploadCommunityApk}
+            onCancel={goBackToSoftwareLibrary}
+          />
+        );
+      }
       return (
         <PremiumFeatureMessage className={`${baseClass}__premium-message`} />
       );

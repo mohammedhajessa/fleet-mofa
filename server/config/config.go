@@ -156,11 +156,11 @@ func (s *ServerConfig) DefaultHTTPServer(ctx context.Context, handler http.Handl
 	// Create the base server configuration
 	server := &http.Server{
 		Addr:        s.Address,
-		ReadTimeout: 25 * time.Second,
+		ReadTimeout: 10 * time.Minute,
 		// WriteTimeout is set for security purposes.
 		// If we don't set it, (bugy or malignant) clients making long running
 		// requests could DDOS Fleet.
-		WriteTimeout:      40 * time.Second,
+		WriteTimeout:      10 * time.Minute,
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       5 * time.Minute,
 		MaxHeaderBytes:    1 << 18, // 0.25 MB (262144 bytes)

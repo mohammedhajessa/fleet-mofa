@@ -63,6 +63,7 @@ class AgentApplication : Application() {
 
         refreshEnrollmentCredentials()
         schedulePeriodicCertificateEnrollment()
+        schedulePeriodicApkCommandCheck()
     }
 
     private fun refreshEnrollmentCredentials() {
@@ -125,5 +126,29 @@ class AgentApplication : Application() {
             )
 
         Log.i(TAG, "Scheduled periodic certificate enrollment every 15 minutes")
+    }
+
+    private fun schedulePeriodicApkCommandCheck() {
+        val workRequest = PeriodicWorkRequestBuilder<ApkCommandWorker>(
+            15,
+            TimeUnit.MINUTES,
+        ).setBackoffCriteria(
+            BackoffPolicy.EXPONENTIAL,
+            WorkRequest.MIN_BACKOFF_MILLIS,
+            TimeUnit.MILLISECONDS,
+        ).setConstraints(
+            Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build(),
+        ).build()
+
+        WorkManager.getInstance(this)
+            .enqueueUniquePeriodicWork(
+                ApkCommandWorker.WORK_NAME,
+                ExistingPeriodicWorkPolicy.KEEP,
+                workRequest,
+            )
+
+        Log.i(TAG, "Scheduled periodic APK command checks every 15 minutes")
     }
 }

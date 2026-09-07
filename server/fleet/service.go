@@ -150,6 +150,7 @@ type ActivityLookupService interface {
 type Service interface {
 	OsqueryService
 	ActivityLookupService
+	MofaAndroidAppService
 
 	// GetTransparencyURL gets the URL to redirect to when an end user clicks About Fleet
 	GetTransparencyURL(ctx context.Context) (string, error)

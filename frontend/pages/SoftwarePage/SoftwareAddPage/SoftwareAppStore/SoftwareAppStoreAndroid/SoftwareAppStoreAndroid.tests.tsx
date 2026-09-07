@@ -7,6 +7,23 @@ import SoftwareAppStoreAndroid from "./SoftwareAppStoreAndroid";
 const router = createMockRouter();
 
 describe("SoftwareAppStoreAndroid", () => {
+  it("shows the APK uploader to Community global admins", () => {
+    const render = createCustomRenderer({
+      context: {
+        app: {
+          isPremiumTier: false,
+          isGlobalAdmin: true,
+          isAndroidMdmEnabledAndConfigured: false,
+        },
+      },
+    });
+
+    render(<SoftwareAppStoreAndroid currentTeamId={1} router={router} />);
+
+    expect(screen.getByText("Upload a company APK")).toBeInTheDocument();
+    expect(screen.getByText("Upload and install")).toBeInTheDocument();
+  });
+
   it("shows enable button for admins when Android MDM is not configured", () => {
     const render = createCustomRenderer({
       context: {
