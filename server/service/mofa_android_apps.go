@@ -9,11 +9,13 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/fleetdm/fleet/v4/server/contexts/ctxerr"
 	hostctx "github.com/fleetdm/fleet/v4/server/contexts/host"
 	"github.com/fleetdm/fleet/v4/server/fleet"
 )
@@ -369,4 +371,106 @@ func updateMofaAndroidAppStatusEndpoint(ctx context.Context, request interface{}
 	req := request.(*updateMofaAndroidAppStatusRequest)
 	err := svc.UpdateMofaAndroidAppCommandStatus(ctx, req.CommandID, req.Status, req.Detail)
 	return updateMofaAndroidAppStatusResponse{Err: err}, nil
+}
+
+type mofaManagedPlayTokenCreator interface {
+	CreateMofaManagedPlayWebToken(
+		ctx context.Context,
+		enterpriseName string,
+		parentFrameURL string,
+	) (string, error)
+}
+
+func (svc *Service) CreateMofaManagedPlayToken(
+	ctx context.Context,
+	parentFrameURL string,
+) (*fleet.MofaManagedPlayToken, error) {
+	if err := svc.authz.Authorize(ctx, &fleet.AppConfig{}, fleet.ActionWrite); err != nil {
+		return nil, err
+	}
+	if err := svc.VerifyMDMAndroidConfigured(ctx); err != nil {
+		return nil, err
+	}
+
+	parsed, err := url.Parse(parentFrameURL)
+	if err != nil ||
+		parsed.Scheme != "https" ||
+		parsed.Host == "" ||
+		parsed.User != nil ||
+		parsed.RawQuery != "" ||
+		parsed.Fragment != "" {
+		return nil, &fleet.BadRequestError{
+			Message: "parent_frame_url must be an HTTPS origin without a path, query, or fragment",
+		}
+	}
+
+	if parsed.Path != "" && parsed.Path != "/" {
+		return nil, &fleet.BadRequestError{
+			Message: "parent_frame_url must not contain a path",
+		}
+	}
+
+	parentFrameURL = parsed.Scheme + "://" + parsed.Host
+
+	enterprise, err := svc.ds.GetEnterprise(ctx)
+	if err != nil {
+		return nil, ctxerr.Wrap(ctx, err, "getting Android enterprise")
+	}
+
+	creator, ok := svc.androidSvc.(mofaManagedPlayTokenCreator)
+	if !ok {
+		return nil, errors.New("Android service does not support Managed Google Play tokens")
+	}
+
+	token, err := creator.CreateMofaManagedPlayWebToken(
+		ctx,
+		enterprise.Name(),
+		parentFrameURL,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	query := url.Values{}
+	query.Set("token", token)
+	query.Set("mode", "SELECT")
+	query.Set("iframehomepage", "PRIVATE_APPS")
+	query.Set("locale", "en_US")
+
+	return &fleet.MofaManagedPlayToken{
+		Token:     token,
+		IframeURL: "https://play.google.com/work/embedded/search?" + query.Encode(),
+	}, nil
+}
+
+type createMofaManagedPlayTokenRequest struct {
+	ParentFrameURL string `json:"parent_frame_url"`
+}
+
+type createMofaManagedPlayTokenResponse struct {
+	Token     string `json:"token,omitempty"`
+	IframeURL string `json:"iframe_url,omitempty"`
+	Err       error  `json:"error,omitempty"`
+}
+
+func (r createMofaManagedPlayTokenResponse) Error() error {
+	return r.Err
+}
+
+func createMofaManagedPlayTokenEndpoint(
+	ctx context.Context,
+	request interface{},
+	svc fleet.Service,
+) (fleet.Errorer, error) {
+	req := request.(*createMofaManagedPlayTokenRequest)
+
+	result, err := svc.CreateMofaManagedPlayToken(ctx, req.ParentFrameURL)
+	if err != nil {
+		return createMofaManagedPlayTokenResponse{Err: err}, nil
+	}
+
+	return createMofaManagedPlayTokenResponse{
+		Token:     result.Token,
+		IframeURL: result.IframeURL,
+	}, nil
 }

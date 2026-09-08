@@ -65,6 +65,11 @@ type MofaAndroidAppDownload struct {
 
 // MofaAndroidAppService is kept separate from Fleet's Premium software
 // package APIs. These methods are implemented by the Community service.
+type MofaManagedPlayToken struct {
+	Token     string `json:"token"`
+	IframeURL string `json:"iframe_url"`
+}
+
 type MofaAndroidAppService interface {
 	UploadMofaAndroidApp(ctx context.Context, upload *MofaAndroidAppUpload) (*MofaAndroidApp, error)
 	ListMofaAndroidApps(ctx context.Context, teamID uint) ([]*MofaAndroidApp, error)
@@ -72,4 +77,6 @@ type MofaAndroidAppService interface {
 	ListPendingMofaAndroidAppCommands(ctx context.Context) ([]*MofaAndroidAppCommand, error)
 	DownloadMofaAndroidApp(ctx context.Context, commandID string) (*MofaAndroidAppDownload, error)
 	UpdateMofaAndroidAppCommandStatus(ctx context.Context, commandID string, status MofaAndroidAppCommandStatus, detail string) error
+	CreateMofaManagedPlayToken(ctx context.Context, parentFrameURL string) (*MofaManagedPlayToken, error)
+	InstallMofaManagedPlayApp(ctx context.Context, hostUUID string, packageName string) (string, error)
 }

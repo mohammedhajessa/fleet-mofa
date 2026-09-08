@@ -33,6 +33,10 @@ type DownloadMofaAndroidAppFunc func(ctx context.Context, commandID string) (*fl
 
 type UpdateMofaAndroidAppCommandStatusFunc func(ctx context.Context, commandID string, status fleet.MofaAndroidAppCommandStatus, detail string) error
 
+type CreateMofaManagedPlayTokenFunc func(ctx context.Context, parentFrameURL string) (*fleet.MofaManagedPlayToken, error)
+
+type InstallMofaManagedPlayAppFunc func(ctx context.Context, hostUUID string, packageName string) (string, error)
+
 type EnrollOsqueryFunc func(ctx context.Context, enrollSecret string, hostIdentifier string, hostDetails map[string](map[string]string)) (nodeKey string, err error)
 
 type AuthenticateHostFunc func(ctx context.Context, nodeKey string) (host *fleet.Host, debug bool, err error)
@@ -1048,8 +1052,13 @@ type Service struct {
 	UpdateMofaAndroidAppCommandStatusFunc        UpdateMofaAndroidAppCommandStatusFunc
 	UpdateMofaAndroidAppCommandStatusFuncInvoked bool
 
-	EnrollOsqueryFunc        EnrollOsqueryFunc
-	EnrollOsqueryFuncInvoked bool
+	CreateMofaManagedPlayTokenFunc        CreateMofaManagedPlayTokenFunc
+	CreateMofaManagedPlayTokenFuncInvoked bool
+
+	InstallMofaManagedPlayAppFunc        InstallMofaManagedPlayAppFunc
+	InstallMofaManagedPlayAppFuncInvoked bool
+	EnrollOsqueryFunc                    EnrollOsqueryFunc
+	EnrollOsqueryFuncInvoked             bool
 
 	AuthenticateHostFunc        AuthenticateHostFunc
 	AuthenticateHostFuncInvoked bool
@@ -6071,4 +6080,30 @@ func (s *Service) DeviceSendAPNSPing(ctx context.Context, host *fleet.Host) erro
 	s.DeviceSendAPNSPingFuncInvoked = true
 	s.mu.Unlock()
 	return s.DeviceSendAPNSPingFunc(ctx, host)
+}
+
+func (s *Service) CreateMofaManagedPlayToken(
+	ctx context.Context,
+	parentFrameURL string,
+) (*fleet.MofaManagedPlayToken, error) {
+	s.mu.Lock()
+	s.CreateMofaManagedPlayTokenFuncInvoked = true
+	s.mu.Unlock()
+	return s.CreateMofaManagedPlayTokenFunc(ctx, parentFrameURL)
+}
+
+func (s *Service) InstallMofaManagedPlayApp(
+	ctx context.Context,
+	hostUUID string,
+	packageName string,
+) (string, error) {
+	s.mu.Lock()
+	s.InstallMofaManagedPlayAppFuncInvoked = true
+	s.mu.Unlock()
+
+	return s.InstallMofaManagedPlayAppFunc(
+		ctx,
+		hostUUID,
+		packageName,
+	)
 }

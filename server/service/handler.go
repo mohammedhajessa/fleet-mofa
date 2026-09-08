@@ -433,6 +433,8 @@ func attachFleetAPIRoutes(r *mux.Router, svc fleet.Service, config config.FleetC
 	ue.SkipRequestBodySizeLimit().POST("/api/_version_/fleet/mofa/android/apps", uploadMofaAndroidAppEndpoint, uploadMofaAndroidAppRequest{})
 	ue.GET("/api/_version_/fleet/mofa/android/apps", listMofaAndroidAppsEndpoint, listMofaAndroidAppsRequest{})
 	ue.POST("/api/_version_/fleet/mofa/android/apps/{app_id:[0-9]+}/install", queueMofaAndroidAppEndpoint, queueMofaAndroidAppRequest{})
+	ue.POST("/api/_version_/fleet/mofa/android/managed-play/token", createMofaManagedPlayTokenEndpoint, createMofaManagedPlayTokenRequest{})
+	ue.POST("/api/_version_/fleet/mofa/android/managed-play/apps/install", installMofaManagedPlayAppEndpoint, installMofaManagedPlayAppRequest{})
 
 	ue.POST("/api/_version_/fleet/hosts/{host_id:[0-9]+}/software/{software_title_id:[0-9]+}/install", installSoftwareTitleEndpoint,
 		installSoftwareRequest{})
