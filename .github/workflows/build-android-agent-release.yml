@@ -1,0 +1,92 @@
+name: Build Android Agent Release
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "android/**"
+      - ".github/workflows/build-android-agent-release.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Configure release signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_BASE64"
+          test -n "$KEYSTORE_PASSWORD"
+          test -n "$KEY_ALIAS"
+          test -n "$KEY_PASSWORD"
+
+          printf '%s' "$KEYSTORE_BASE64" |
+            base64 --decode > android/fleet-mofa-release.jks
+
+          python3 <<'PY'
+          from pathlib import Path
+          import os
+
+          def escape(value):
+              return value.replace("\\", "\\\\")
+
+          contents = "\n".join([
+              "storeFile=fleet-mofa-release.jks",
+              "storePassword=" + escape(os.environ["KEYSTORE_PASSWORD"]),
+              "keyAlias=" + escape(os.environ["KEY_ALIAS"]),
+              "keyPassword=" + escape(os.environ["KEY_PASSWORD"]),
+              "",
+          ])
+
+          Path("android/keystore.properties").write_text(contents)
+          PY
+
+          chmod 600 \
+            android/fleet-mofa-release.jks \
+            android/keystore.properties
+
+      - name: Enable Gradle wrapper
+        run: chmod +x android/gradlew
+
+      - name: Build release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Prepare APK
+        run: |
+          cp \
+            android/app/build/outputs/apk/release/app-release.apk \
+            android/app/build/outputs/apk/release/fleet-mofa-agent-release.apk
+
+      - name: Verify APK signature
+        run: |
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          "$APKSIGNER" verify --verbose --print-certs \
+            android/app/build/outputs/apk/release/fleet-mofa-agent-release.apk
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: fleet-mofa-android-agent-release
+          path: android/app/build/outputs/apk/release/fleet-mofa-agent-release.apk
+          retention-days: 30

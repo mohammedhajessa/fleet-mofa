@@ -21,11 +21,11 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.fleetdm.agent"
+        applicationId = "io.github.mohammedhajessa.fleetmofa"
         minSdk = 33
         targetSdk = 36
-        versionCode = 14
-        versionName = "1.7.0"
+        versionCode = 15
+        versionName = "1.7.1"
 
         buildConfigField("String", "INFO_URL", "\"https://fleetdm.com/better\"")
 
