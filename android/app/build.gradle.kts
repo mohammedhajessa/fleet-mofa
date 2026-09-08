@@ -240,6 +240,7 @@ spotless {
 // ==================== DEPENDENCIES ====================
 
 dependencies {
+    implementation("androidx.fragment:fragment-ktx:1.8.9")
     // AndroidX and Compose
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
